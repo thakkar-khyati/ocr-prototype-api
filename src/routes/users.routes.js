@@ -4,6 +4,7 @@ const auth = require("../middleware/auth")
 const {
   createUser,
   getAllUser,
+  getUserById,
   getLoggedInUser,
   updateUser,
   deleteUser,
@@ -16,6 +17,8 @@ const userRouter = express.Router();
 userRouter.post("/users", createUser);
 
 userRouter.get("/users", getAllUser);
+
+userRouter.get("/users/:id",getUserById)
 
 userRouter.get("/users/me",auth, getLoggedInUser);
 

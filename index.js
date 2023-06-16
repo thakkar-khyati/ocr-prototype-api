@@ -7,19 +7,12 @@ const os = require("os");
 
 const totalCPUs = os.cpus().length;
 
-const logger = require('./src/logs/logger')
 const client = require("./src/eureka");
 const userRouter = require("./src/routes/users.routes");
 
 dotenv.config();
 const app = express();
 //client.start()
-
-// app.use((req,res,next)=>{
-//   logger.info({url:req.url, statuscode:req.complete, method:req.method})
-
-//   next()
-// })
 
 app.use(
   cors({

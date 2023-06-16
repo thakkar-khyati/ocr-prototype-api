@@ -3,7 +3,7 @@ const {ElasticsearchTransport} = require('winston-elasticsearch')
 
 const esTransport = new ElasticsearchTransport({
     level:'error',
-    indexPrefix:'logs',
+    indexPrefix:'ocr-logs',
     clientOpts:{node:'http://localhost:9200'}
 })
 

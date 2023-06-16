@@ -18,21 +18,40 @@ const User = sequelize.define("users", {
     allowNull: true,
     autoIncrement: true,
   },
-  first_name: {
+  firstname: {
     type: DataTypes.STRING,
-    allowNull:false
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
   },
-  last_name: {
+  lastname: {
     type: DataTypes.STRING,
-    allowNull:false
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
   },
   email: {
     type: DataTypes.STRING,
-    allowNull:false
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
   },
   password: {
     type: DataTypes.STRING,
-    allowNull:false
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
+  },
+  role:{
+    type:DataTypes.STRING,
+    defaultValue:'user',
+    validate:{
+      isIn:[['admin','user','Admin','User','ADMIN','USER']]
+    }
   },
   token: {
     type: DataTypes.STRING,

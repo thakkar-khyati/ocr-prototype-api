@@ -5,45 +5,130 @@ const {
   findByCredentials,
 } = require("../models/users.model");
 
-const logger = require('../logs/logger')
-const errorLogger = require("../logs/errorLogger")
+const logger = require("../logs/logger");
+const errorLogger = require("../logs/errorLogger");
+
+const utill = require("../utill");
 
 const createUser = async (req, res) => {
   try {
-    const { first_name, last_name, email, password } = req.body;
+    const { firstname, lastname, email, role, password } = req.body;
     const user = await User.create({
-      first_name,
-      last_name,
+      firstname,
+      lastname,
+      role,
       email,
       password,
     });
     const enUser = await encodePassword(user.password, user._id);
-    res.send(enUser);
-    logger.info({url:req.url, body:req.body , statuscode:200, method:req.method})
+    await res
+      .status(utill.status.created)
+      .send({ user: enUser, toastMsg: "user created successfully." });
+    logger.info({
+      url: req.url,
+      body: enUser,
+      statuscode: utill.status.created,
+      method: req.method,
+      ip: req.ip,
+    });
   } catch (error) {
-    errorLogger.error({url:req.url, body:req.body,statuscode:401,method:req.method, error:error.errors})
+    errorLogger.error({
+      url: req.url,
+      body: req.body,
+      statuscode: utill.status.badRequest,
+      method: req.method,
+      error: error.errors,
+      ip: req.ip,
+    });
     console.log(error);
-    res.send(error);
+    res.status(utill.status.badRequest).send(error);
   }
 };
 
 const getAllUser = async (req, res) => {
   try {
     const users = await User.findAll();
-    res.status(200).send(users);
-    logger.info({url:req.url, statuscode:200, method:req.method})
+    await res
+      .status(utill.status.success)
+      .send({ users: users, toastMsg: "users found" });
+    logger.info({
+      url: req.url,
+      statuscode: utill.status.success,
+      method: req.method,
+      ip: req.ip,
+    });
   } catch (error) {
-    res.send(error);
+    res.status(utill.status.serverError).send(error);
+    errorLogger.error({
+      url: req.url,
+      statuscode: utill.status.serverError,
+      method: req.method,
+      error: error,
+      ip: req.ip,
+    });
     console.log(error);
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const id = req.params.id;
+    const user = await User.findByPk(id);
+    if (!user) {
+      errorLogger.error({
+        url: req.url,
+        method: req.method,
+        id: id,
+        statuscode: utill.status.notFound,
+        error: "user not found",
+        ip: req.ip,
+      });
+      return res.status(utill.status.notFound).send("user not found");
+    }
+    await res.status(utill.status.success).send({user:user,toastMsg:"user found"});
+    logger.info({
+      Message: "user found",
+      url: req.url,
+      method: req.method,
+      statuscode: utill.status.success,
+      user: user,
+      ip: req.ip,
+    });
+  } catch (error) {
+    res.status(utill.status.serverError).send(error);
+    console.log(error);
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      userId: req.params.id,
+      statuscode: utill.status.serverError,
+      error: error,
+      ip: req.ip,
+    });
   }
 };
 
 const getLoggedInUser = async (req, res) => {
   try {
     const user = req.user;
-    res.send(user);
+    await res.status(utill.status.success).send(user);
+    logger.info({
+      url: req.url,
+      statuscode: utill.status.success,
+      method: req.method,
+      body: user,
+      ip: req.ip,
+    });
   } catch (error) {
-    res.send(error);
+    await res.send(error);
+    errorLogger.error({
+      url: req.url,
+      statuscode: utill.status.serverError,
+      method: req.method,
+      body: req.body,
+      headers: req.headers,
+      ip: req.ip,
+    });
     console.log(error);
   }
 };
@@ -53,35 +138,74 @@ const updateUser = async (req, res) => {
     const _id = req.params.id;
     await User.update(req.body, { where: { _id: _id } });
     const user = await User.findByPk(_id);
-    res.send(user);
+    if (!user) {
+      errorLogger.error({
+        url: req.url,
+        method: req.method,
+        body: req.body,
+        statuscode: utill.status.notFound,
+        ip: req.ip,
+      });
+      res.status(utill.status.notFound).send("user not found");
+    }
+    res.status(utill.status.success).send({user:user,toastMsg:"user updated!"});
+    logger.info({
+      url: req.url,
+      method: req.method,
+      user: user,
+      statuscode: utill.status.success,
+      ip: req.ip,
+    });
   } catch (error) {
     res.send(error);
     console.log(error);
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      statuscode: utill.status.serverError,
+      body: req.body,
+      ip: req.ip,
+    });
   }
 };
 
 const deleteUser = async (req, res) => {
   try {
     const _id = req.params.id;
+    const user = await User.findByPk(_id);
+    if (!user) {
+      errorLogger.error({
+        url: req.url,
+        method: req.method,
+        body: req.body,
+        statuscode: utill.status.notFound,
+        ip: req.ip,
+      });
+      res.status(utill.status.notFound).send("user not found");
+    }
     await User.destroy({ where: { _id: _id } });
-    res.send("deleted");
+    res.status(utill.status.success).send({toastMsg:"user deleted"});
+    logger.info({
+      url: req.url,
+      method: req.method,
+      id: _id,
+      statuscode: utill.status.success,
+      user: user,
+      ip: req.ip,
+    });
   } catch (error) {
-    res.send(error);
+    res.status(utill.status.serverError).send(error);
     console.log(error);
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      id: req.params.id,
+      statuscode: utill.status.serverError,
+      error: error,
+      ip: req.ip,
+    });
   }
 };
-
-// const deleteMe = async(req,res)=>{
-//     try {
-//         console.log(req.user)
-//         const _id = req.user._id
-//         await User.destroy({where:{_id:_id}})
-//         res.send("deleted")
-//     } catch (error) {
-//         res.send(error)
-//         console.log(error)
-//     }
-// }
 
 const loginUser = async (req, res) => {
   try {
@@ -116,6 +240,7 @@ const logoutUser = async (req, res) => {
 module.exports = {
   createUser,
   getAllUser,
+  getUserById,
   getLoggedInUser,
   updateUser,
   deleteUser,
