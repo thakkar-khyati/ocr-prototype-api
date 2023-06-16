@@ -1,3 +1,5 @@
+const redis = require("redis");
+
 const {
   User,
   getAuthToken,
@@ -9,6 +11,12 @@ const logger = require("../logs/logger");
 const errorLogger = require("../logs/errorLogger");
 
 const utill = require("../utill");
+
+const redisClient = redis.createClient()
+const DEFAULT_EXPIRATION = 3600;
+redisClient.on('error', err => console.log('Redis Client Error', err));
+
+// redisClient.connect();
 
 const createUser = async (req, res) => {
   try {
@@ -85,7 +93,9 @@ const getUserById = async (req, res) => {
       });
       return res.status(utill.status.notFound).send("user not found");
     }
-    await res.status(utill.status.success).send({user:user,toastMsg:"user found"});
+    await res
+      .status(utill.status.success)
+      .send({ user: user, toastMsg: "user found" });
     logger.info({
       Message: "user found",
       url: req.url,
@@ -148,7 +158,9 @@ const updateUser = async (req, res) => {
       });
       res.status(utill.status.notFound).send("user not found");
     }
-    res.status(utill.status.success).send({user:user,toastMsg:"user updated!"});
+    res
+      .status(utill.status.success)
+      .send({ user: user, toastMsg: "user updated!" });
     logger.info({
       url: req.url,
       method: req.method,
@@ -184,7 +196,7 @@ const deleteUser = async (req, res) => {
       res.status(utill.status.notFound).send("user not found");
     }
     await User.destroy({ where: { _id: _id } });
-    res.status(utill.status.success).send({toastMsg:"user deleted"});
+    res.status(utill.status.success).send({ toastMsg: "user deleted" });
     logger.info({
       url: req.url,
       method: req.method,
@@ -213,7 +225,7 @@ const loginUser = async (req, res) => {
     if (!user) {
       res.status(400).send({ toastMsg: "Details are not correct.!" });
     } else {
-      user = await getAuthToken(user._id);
+      //user = await getAuthToken(user._id);
       res.status(200).send({
         toastMsg: "Login Successfully.!!",
         data: user,
@@ -228,7 +240,7 @@ const loginUser = async (req, res) => {
 const logoutUser = async (req, res) => {
   try {
     let user = await findByCredentials(req.body.email, req.body.password);
-    await User.update({ token: "" }, { where: { _id: user._id } });
+    // await User.update({ token: "" }, { where: { _id: user._id } });
     user = await User.findByPk(user._id);
     res.send(user);
   } catch (error) {
