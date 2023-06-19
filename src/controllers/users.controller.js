@@ -47,19 +47,21 @@ const createUser = async (req, res) => {
     res
       .status(utill.status.created)
       .send({ user: enUser, toastMsg: "user created successfully." });
+    const users = await User.findAll();
+    redisClient.setEx("ocr_users", DEFAULT_EXPIRATION, JSON.stringify(users));
+    redisClient.setEx(
+      `ocr_users?id=${_id}`,
+      DEFAULT_EXPIRATION,
+      JSON.stringify(user)
+    );
     logger.info({
       url: req.url,
       user: enUser,
       statuscode: utill.status.created,
       method: req.method,
       ip: req.ip,
+      additional_info:"user created and added to cache memory"
     });
-    const users = await User.findAll();
-    redisClient.setEx(
-      "ocr_users",
-      DEFAULT_EXPIRATION,
-      JSON.stringify(users)
-    );
   } catch (error) {
     errorLogger.error({
       url: req.url,
@@ -124,43 +126,67 @@ const getAllUser = async (req, res) => {
 };
 
 const getUserById = async (req, res) => {
-  try {
-    const id = req.params.id;
-    const user = await User.findByPk(id);
-    if (!user) {
-      errorLogger.error({
-        url: req.url,
-        method: req.method,
-        id: id,
-        statuscode: utill.status.notFound,
-        error: "user not found",
-        ip: req.ip,
-      });
-      return res.status(utill.status.notFound).send("user not found");
+  const id = req.params.id;
+  redisClient.get(`ocr_users?id=${id}`, async (error, user) => {
+    if (error) {
+      console.log(error);
     }
-    await res
-      .status(utill.status.success)
-      .send({ user: user, toastMsg: "user found" });
-    logger.info({
-      Message: "user found",
-      url: req.url,
-      method: req.method,
-      statuscode: utill.status.success,
-      user: user,
-      ip: req.ip,
-    });
-  } catch (error) {
-    res.status(utill.status.serverError).send(error);
-    console.log(error);
-    errorLogger.error({
-      url: req.url,
-      method: req.method,
-      userId: req.params.id,
-      statuscode: utill.status.serverError,
-      error: error,
-      ip: req.ip,
-    });
-  }
+    if (user != null) {
+      console.log("cache hit");
+      logger.info({
+        url: req.url,
+        statuscode: utill.status.success,
+        method: req.method,
+        ip: req.ip,
+        additional_info: "redis cache was there for users and is used",
+        user: user,
+      });
+      return res.send(JSON.parse(user));
+    } else {
+      try {
+        const user = await User.findByPk(id);
+        if (!user) {
+          errorLogger.error({
+            url: req.url,
+            method: req.method,
+            id: id,
+            statuscode: utill.status.notFound,
+            error: "user not found",
+            ip: req.ip,
+          });
+          return res.status(utill.status.notFound).send("user not found");
+        }
+        await res
+          .status(utill.status.success)
+          .send({ user: user, toastMsg: "user found" });
+        logger.info({
+          Message: "user found",
+          url: req.url,
+          method: req.method,
+          statuscode: utill.status.success,
+          user: user,
+          ip: req.ip,
+          additional_info: "redis cache was not there but is now created",
+        });
+        redisClient.setEx(
+          `ocr_users?id=${id}`,
+          DEFAULT_EXPIRATION,
+          JSON.stringify(user)
+        );
+      } catch (error) {
+        res.status(utill.status.serverError).send(error);
+        console.log(error);
+        errorLogger.error({
+          url: req.url,
+          method: req.method,
+          userId: req.params.id,
+          statuscode: utill.status.serverError,
+          error: error,
+          ip: req.ip,
+        });
+      }
+    }
+  });
 };
 
 const getLoggedInUser = async (req, res) => {
@@ -214,11 +240,41 @@ const updateUser = async (req, res) => {
       ip: req.ip,
     });
     const users = await User.findAll();
-    redisClient.setEx(
-      "ocr_users",
-      DEFAULT_EXPIRATION,
-      JSON.stringify(users)
-    );
+    redisClient.setEx("ocr_users", DEFAULT_EXPIRATION, JSON.stringify(users));
+    redisClient.get(`ocr_users?id=${_id}`, (error, ocr_user) => {
+      if (error) {
+        console.log(error);
+      }
+      if (ocr_user != null) {
+        redisClient.setEx(
+          `ocr_users?id=${_id}`,
+          DEFAULT_EXPIRATION,
+          JSON.stringify(user)
+        );
+        logger.info({
+          url: req.url,
+          method: req.method,
+          user: user,
+          statuscode: utill.status.success,
+          ip: req.ip,
+          message: "Redis cache memory updated.",
+        });
+      } else {
+        redisClient.setEx(
+          `ocr_users?id=${_id}`,
+          DEFAULT_EXPIRATION,
+          JSON.stringify(user)
+        );
+        logger.info({
+          url: req.url,
+          method: req.method,
+          user: user,
+          statuscode: utill.status.success,
+          ip: req.ip,
+          message: "Redis cache memory created for the updated user",
+        });
+      }
+    });
   } catch (error) {
     res.send(error);
     console.log(error);
@@ -257,11 +313,7 @@ const deleteUser = async (req, res) => {
       ip: req.ip,
     });
     const users = await User.findAll();
-    redisClient.setEx(
-      "ocr_users",
-      DEFAULT_EXPIRATION,
-      JSON.stringify(users)
-    );
+    redisClient.setEx("ocr_users", DEFAULT_EXPIRATION, JSON.stringify(users));
   } catch (error) {
     res.status(utill.status.serverError).send(error);
     console.log(error);
