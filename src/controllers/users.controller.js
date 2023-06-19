@@ -49,11 +49,6 @@ const createUser = async (req, res) => {
       .send({ user: enUser, toastMsg: "user created successfully." });
     const users = await User.findAll();
     redisClient.setEx("ocr_users", DEFAULT_EXPIRATION, JSON.stringify(users));
-    redisClient.setEx(
-      `ocr_users?id=${_id}`,
-      DEFAULT_EXPIRATION,
-      JSON.stringify(user)
-    );
     logger.info({
       url: req.url,
       user: enUser,
