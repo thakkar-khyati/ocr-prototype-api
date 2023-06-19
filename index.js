@@ -18,6 +18,7 @@ const errorLogger = require("./src/logs/errorLogger")
 dotenv.config();
 const app = express();
 
+app.use(bodyParser.json());
 app.use("/", userRouter);
 const server = http.createServer(app)
 client.start();
@@ -76,7 +77,7 @@ io.on("connection",(socket)=>{
         ip:socket.ip,
         response:response
       })
-      socket.emit('respose',response)
+      socket.emit('response',response)
     } catch (error) {
       console.log("java api request denied for ",socket.id)
       errorLogger.error({
@@ -87,17 +88,17 @@ io.on("connection",(socket)=>{
       })
     }
   })
-  socket.on('disconnect',()=>{
-    console.log("client disconnected for ",socket.id)
-    logger.info({
-      message:`socket disconnected with ${socket.id}`,
-      socketID:socket.id,
-      ip:socket.ip
-    })
-  })
+  // socket.on('disconnect',()=>{
+  //   console.log("client disconnected for ",socket.id)
+  //   logger.info({
+  //     message:`socket disconnected with ${socket.id}`,
+  //     socketID:socket.id,
+  //     ip:socket.ip
+  //   })
+  // })
 })
 
-app.use(bodyParser.json());
+
 
 const port = process.env.PORT;
 
@@ -110,6 +111,6 @@ if (cluster.isMaster) {
   //   console.log(`server running on ${port}, with pid of ${process.pid}`);
   // });
   server.listen(port,()=>{
-    console.log(`server running on ${port}, with pid of ${process.pid}`)
+    console.log(`server and web-socket running on ${port}, with pid of ${process.pid}`)
   })
 }

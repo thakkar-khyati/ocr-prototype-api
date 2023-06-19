@@ -12,11 +12,26 @@ const errorLogger = require("../logs/errorLogger");
 
 const utill = require("../utill");
 
-const redisClient = redis.createClient()
+const redisClient = redis.createClient({
+  legacyMode: true,
+  socket: {
+    host: "localhost",
+    port: 6379,
+  },
+});
 const DEFAULT_EXPIRATION = 3600;
-redisClient.on('error', err => console.log('Redis Client Error', err));
+redisClient.on("connect", () => {
+  console.log("Connected to Redis12345");
+});
 
-// redisClient.connect();
+redisClient
+  .connect()
+  .then(() => {
+    console.log("Connected to Redis");
+  })
+  .catch((err) => {
+    console.log(err.message);
+  });
 
 const createUser = async (req, res) => {
   try {
@@ -29,16 +44,22 @@ const createUser = async (req, res) => {
       password,
     });
     const enUser = await encodePassword(user.password, user._id);
-    await res
+    res
       .status(utill.status.created)
       .send({ user: enUser, toastMsg: "user created successfully." });
     logger.info({
       url: req.url,
-      body: enUser,
+      user: enUser,
       statuscode: utill.status.created,
       method: req.method,
       ip: req.ip,
     });
+    const users = await User.findAll();
+    redisClient.setEx(
+      "ocr_users",
+      DEFAULT_EXPIRATION,
+      JSON.stringify(users)
+    );
   } catch (error) {
     errorLogger.error({
       url: req.url,
@@ -54,28 +75,52 @@ const createUser = async (req, res) => {
 };
 
 const getAllUser = async (req, res) => {
-  try {
-    const users = await User.findAll();
-    await res
-      .status(utill.status.success)
-      .send({ users: users, toastMsg: "users found" });
-    logger.info({
-      url: req.url,
-      statuscode: utill.status.success,
-      method: req.method,
-      ip: req.ip,
-    });
-  } catch (error) {
-    res.status(utill.status.serverError).send(error);
-    errorLogger.error({
-      url: req.url,
-      statuscode: utill.status.serverError,
-      method: req.method,
-      error: error,
-      ip: req.ip,
-    });
-    console.log(error);
-  }
+  redisClient.get("ocr_users", async (error, ocr_users) => {
+    if (error) {
+      console.log(error);
+    }
+    if (ocr_users != null) {
+      console.log("Cache hit");
+      logger.info({
+        url: req.url,
+        statuscode: utill.status.success,
+        method: req.method,
+        ip: req.ip,
+        additional_info: "redis cache was there for users and is used",
+      });
+      return res.json(JSON.parse(ocr_users));
+    } else {
+      console.log("cache miss");
+      try {
+        const users = await User.findAll();
+        await res
+          .status(utill.status.success)
+          .send({ users: users, toastMsg: "users found" });
+        redisClient.setEx(
+          "ocr_users",
+          DEFAULT_EXPIRATION,
+          JSON.stringify(users)
+        );
+        logger.info({
+          url: req.url,
+          statuscode: utill.status.success,
+          method: req.method,
+          ip: req.ip,
+          additional_info: "redis cache was not there but is now created",
+        });
+      } catch (error) {
+        res.status(utill.status.serverError).send(error);
+        errorLogger.error({
+          url: req.url,
+          statuscode: utill.status.serverError,
+          method: req.method,
+          error: error,
+          ip: req.ip,
+        });
+        console.log(error);
+      }
+    }
+  });
 };
 
 const getUserById = async (req, res) => {
@@ -168,6 +213,12 @@ const updateUser = async (req, res) => {
       statuscode: utill.status.success,
       ip: req.ip,
     });
+    const users = await User.findAll();
+    redisClient.setEx(
+      "ocr_users",
+      DEFAULT_EXPIRATION,
+      JSON.stringify(users)
+    );
   } catch (error) {
     res.send(error);
     console.log(error);
@@ -205,6 +256,12 @@ const deleteUser = async (req, res) => {
       user: user,
       ip: req.ip,
     });
+    const users = await User.findAll();
+    redisClient.setEx(
+      "ocr_users",
+      DEFAULT_EXPIRATION,
+      JSON.stringify(users)
+    );
   } catch (error) {
     res.status(utill.status.serverError).send(error);
     console.log(error);
