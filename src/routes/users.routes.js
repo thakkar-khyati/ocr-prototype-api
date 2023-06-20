@@ -5,7 +5,6 @@ const {
   createUser,
   getAllUser,
   getUserById,
-  getLoggedInUser,
   updateUser,
   deleteUser,
   loginUser,
@@ -20,14 +19,12 @@ userRouter.get("/users", getAllUser);
 
 userRouter.get("/users/:id",getUserById)
 
-userRouter.get("/users/me",auth, getLoggedInUser);
-
 userRouter.patch("/users/:id", updateUser);
 
 userRouter.delete("/users/:id", deleteUser);
 
-userRouter.post("/users/login", loginUser);
+//userRouter.post("/users/login", loginUser);
 
-userRouter.post("/users/logout",logoutUser)
+// userRouter.post("/users/logout",logoutUser)
 
 module.exports = userRouter;
