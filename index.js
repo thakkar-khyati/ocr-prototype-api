@@ -2,12 +2,9 @@ const express = require("express");
 const dotenv = require("dotenv");
 const bodyParser = require("body-parser");
 const cors = require("cors");
-const cluster = require("node:cluster");
-const os = require("os");
 const socketio = require("socket.io");
 const http = require("http");
 
-const totalCPUs = os.cpus().length;
 
 const client = require("./src/eureka");
 const userRouter = require("./src/routes/users.routes");
@@ -85,17 +82,8 @@ io.on("connection", (socket) => {
   })
 });
 
-port1 = process.env.PORT1
+port = process.env.PORT
 
-if (cluster.isMaster) {
-  for (let i = 0; i < totalCPUs; i++) {
-    cluster.fork();
-  }
-} else {
-  // app.listen(port, () => {
-  //   console.log(`server running on ${port}, with pid of ${process.pid}`);
-  // });
-  server.listen(port1,()=>{
-    console.log(`server and web-socket running on ${port1}, with pid of ${process.pid}`)
-  })
-}
+server.listen(port,()=>{
+  console.log(`server and web-socket running on ${port}, with pid of ${process.pid}`)
+})

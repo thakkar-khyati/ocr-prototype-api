@@ -84,7 +84,7 @@ const getAllUser = async (req, res) => {
       });
       await res
         .status(utill.status.success)
-        .send({ users: users, toastMsg: "users found." });
+        .send({ users: users, toastMsg: "users found."});
       debugLogger.debug({
         url: req.url,
         method: req.method,
