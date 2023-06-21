@@ -1,19 +1,21 @@
-const {
-  User,
-  getAuthToken,
-  encodePassword,
-  findByCredentials,
-} = require("../models/users.model");
+const { User } = require("../models/users.model");
 
 const logger = require("../logs/infoLogger");
 const errorLogger = require("../logs/errorLogger");
-const debugLogger = require("../logs/debugLogger")
+const debugLogger = require("../logs/debugLogger");
 
 const utill = require("../utill");
 
 const createUser = async (req, res) => {
   try {
     const { firstname, lastname, email, role, password } = req.body;
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      req_body: { firstname, lastname, email, role },
+      additional_info: "req body has been retrived.",
+    });
     const user = await User.create({
       firstname,
       lastname,
@@ -21,27 +23,40 @@ const createUser = async (req, res) => {
       email,
       password,
     });
-    const enUser = await encodePassword(user.password, user._id);
-
-    res
-      .status(utill.status.created)
-      .send({ user: enUser, toastMsg: "user created successfully." });
-    logger.info({
+    debugLogger.debug({
       url: req.url,
-      user: enUser,
-      statuscode: utill.status.created,
       method: req.method,
       ip: req.ip,
-      additional_info: "user created and added to cache memory",
+      req_body: user,
+      additional_info: "user created",
+    });
+    res
+    .status(utill.status.created)
+    .send({ user: user, toastMsg: "user created successfully." });
+    logger.info({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.created,
+      user: user,
+      additional_info: "user created successfully.",
+    });
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.success,
+      user: user,
+      additional_info: "User created successfully and send as repsponse.",
     });
   } catch (error) {
     errorLogger.error({
       url: req.url,
-      body: req.body,
-      statuscode: utill.status.badRequest,
       method: req.method,
-      error: error.errors,
       ip: req.ip,
+      statuscode: utill.status.badRequest,
+      body: { firstname, lastname, email, role },
+      error: error.errors,
     });
     console.log(error);
     res.status(utill.status.badRequest).send(error);
@@ -51,37 +66,48 @@ const createUser = async (req, res) => {
 const getAllUser = async (req, res) => {
   try {
     const users = await User.findAll();
-    debugLogger.debug({
-      url:req.url,
-      statuscode:utill.status.success,
-      method:req.method,
-      ip:req.ip,
-      additional_info:"users retrived from database"
-    })
-    await res
-      .status(utill.status.success)
-      .send({ users: users, toastMsg: "users found" });
-    debugLogger.debug({
-      url:req.url,
-      statuscode:utill.status.success,
-      method:req.method,
-      ip:req.ip,
-      additional_info:"users sent to api gateway as response"
-    })
-    logger.info({
-      url: req.url,
-      statuscode: utill.status.success,
-      method: req.method,
-      ip: req.ip,
-    });
+    if (users.length === 0) {
+      res.send({ toastMsg: "no users found!" });
+      debugLogger.debug({
+        url: req.url,
+        method: req.methods,
+        ip: req.ip,
+        additional_info: "There are no users in the database!",
+      });
+    } else {
+      debugLogger.debug({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.success,
+        additional_info: "users retrived from database.",
+      });
+      await res
+        .status(utill.status.success)
+        .send({ users: users, toastMsg: "users found." });
+      debugLogger.debug({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.success,
+        additional_info: "users sent to api gateway as response",
+      });
+      logger.info({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.success,
+        additional_info: "users sent as reponse.",
+      });
+    }
   } catch (error) {
     res.status(utill.status.serverError).send(error);
     errorLogger.error({
       url: req.url,
-      statuscode: utill.status.serverError,
       method: req.method,
-      error: error,
       ip: req.ip,
+      statuscode: utill.status.serverError,
+      error: error,
     });
     console.log(error);
   }
@@ -90,28 +116,44 @@ const getAllUser = async (req, res) => {
 const getUserById = async (req, res) => {
   try {
     const id = req.params.id;
+    debugLogger.debug({
+      url: req.url,
+      methods: req.method,
+      ip: req.ip,
+      id: id,
+      additional_info: "id of the user retracted from request.",
+    });
     const user = await User.findByPk(id);
     if (!user) {
-      errorLogger.error({
+      debugLogger.debug({
         url: req.url,
         method: req.method,
-        id: id,
-        statuscode: utill.status.notFound,
-        error: "user not found",
         ip: req.ip,
+        statuscode: utill.status.notFound,
+        id: id,
+        additional_info: "user not found!",
       });
-      return res.status(utill.status.notFound).send("user not found");
+      return res
+        .status(utill.status.notFound)
+        .send({ toastMsg: "user not found!" });
     }
     await res
       .status(utill.status.success)
-      .send({ user: user, toastMsg: "user found" });
-    logger.info({
-      Message: "user found",
+      .send({ user: user, toastMsg: "user found." });
+    debugLogger.debug({
       url: req.url,
       method: req.method,
+      ip: req.ip,
+      user: user,
+      additional_info: "user found and sent as response.",
+    });
+    logger.info({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
       statuscode: utill.status.success,
       user: user,
-      ip: req.ip,
+      Message: "user found",
     });
   } catch (error) {
     res.status(utill.status.serverError).send(error);
@@ -119,38 +161,63 @@ const getUserById = async (req, res) => {
     errorLogger.error({
       url: req.url,
       method: req.method,
-      userId: req.params.id,
-      statuscode: utill.status.serverError,
-      error: error,
       ip: req.ip,
+      statuscode: utill.status.serverError,
+      userId: req.params.id,
+      error: error,
     });
   }
 };
 
 const updateUser = async (req, res) => {
   try {
-    const _id = req.params.id;
-    await User.update(req.body, { where: { _id: _id } });
-    const user = await User.findByPk(_id);
+    const id = req.params.id;
+    debugLogger.debug({
+      url: req.url,
+      methods: req.method,
+      ip: req.ip,
+      id: id,
+      additional_info: "id of user is retracted from request to be updated.",
+    });
+    let user = await User.findByPk(id);
     if (!user) {
-      errorLogger.error({
+      debugLogger.debug({
         url: req.url,
         method: req.method,
-        body: req.body,
-        statuscode: utill.status.notFound,
         ip: req.ip,
+        statuscode: utill.status.notFound,
+        id:id,
+        body: req.body,
+        additional_info: "user not found!",
       });
-      res.status(utill.status.notFound).send("user not found");
+      return res.status(utill.status.notFound).send({ toastMsg: "user not found!" });
     }
+    await User.update(req.body, { where: { _id: id } });
+    user = await User.findByPk(id);
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      user: user,
+      additional_info:"user found and updated!"
+    });
     res
       .status(utill.status.success)
       .send({ user: user, toastMsg: "user updated!" });
     logger.info({
       url: req.url,
       method: req.method,
-      user: user,
-      statuscode: utill.status.success,
       ip: req.ip,
+      statuscode: utill.status.success,
+      user: user,
+    });
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode:utill.status.success,
+      user: user,
+      additional_info:"updated user sent as response."
     });
   } catch (error) {
     res.send(error);
@@ -158,36 +225,52 @@ const updateUser = async (req, res) => {
     errorLogger.error({
       url: req.url,
       method: req.method,
+      ip: req.ip,
       statuscode: utill.status.serverError,
       body: req.body,
-      ip: req.ip,
     });
   }
 };
 
 const deleteUser = async (req, res) => {
   try {
-    const _id = req.params.id;
-    const user = await User.findByPk(_id);
+    const id = req.params.id;
+    debugLogger.debug({
+      url: req.url,
+      methods: req.method,
+      ip: req.ip,
+      id: id,
+      additional_info: "id of user is retracted from request to be updated.",
+    });
+    const user = await User.findByPk(id);
     if (!user) {
-      errorLogger.error({
+      debugLogger.debug({
         url: req.url,
         method: req.method,
-        body: req.body,
-        statuscode: utill.status.notFound,
         ip: req.ip,
+        statuscode: utill.status.notFound,
+        id:id,
+        additional_info:"user not found!"
       });
-      res.status(utill.status.notFound).send("user not found");
+      return res.status(utill.status.notFound).send({toastMsg:"user not found!"});
     }
-    await User.destroy({ where: { _id: _id } });
-    res.status(utill.status.success).send({ toastMsg: "user deleted" });
+    await User.destroy({ where: { _id: id } });
+    debugLogger.debug({
+      url:req.url,
+      method:req.method,
+      ip:req.ip,
+      statuscode:utill.status.success,
+      user:user,
+      additional_info:"user deleted."
+    })
+    res.status(utill.status.success).send({ toastMsg: "user deleted." });
     logger.info({
       url: req.url,
       method: req.method,
-      id: _id,
-      statuscode: utill.status.success,
-      user: user,
       ip: req.ip,
+      statuscode: utill.status.success,
+      id: id,
+      user: user
     });
   } catch (error) {
     res.status(utill.status.serverError).send(error);
@@ -195,41 +278,11 @@ const deleteUser = async (req, res) => {
     errorLogger.error({
       url: req.url,
       method: req.method,
-      id: req.params.id,
-      statuscode: utill.status.serverError,
-      error: error,
       ip: req.ip,
+      statuscode: utill.status.serverError,
+      id: req.params.id,
+      error: error,
     });
-  }
-};
-
-const loginUser = async (req, res) => {
-  try {
-    let user = await findByCredentials(req.body.email, req.body.password);
-    if (!user) {
-      res.status(400).send({ toastMsg: "Details are not correct.!" });
-    } else {
-      //user = await getAuthToken(user._id);
-      res.status(200).send({
-        toastMsg: "Login Successfully.!!",
-        data: user,
-      });
-    }
-  } catch (error) {
-    res.status(404).send({ toastMsg: "Details are not correct.!" });
-    console.log(error);
-  }
-};
-
-const logoutUser = async (req, res) => {
-  try {
-    let user = await findByCredentials(req.body.email, req.body.password);
-    // await User.update({ token: "" }, { where: { _id: user._id } });
-    user = await User.findByPk(user._id);
-    res.send(user);
-  } catch (error) {
-    res.send(error);
-    console.log(error);
   }
 };
 
@@ -239,6 +292,4 @@ module.exports = {
   getUserById,
   updateUser,
   deleteUser,
-  loginUser,
-  logoutUser,
 };

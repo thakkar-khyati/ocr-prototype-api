@@ -46,7 +46,7 @@ const User = sequelize.define("users", {
     allowNull:false,
     validate:{
       notEmpty:true,
-    }
+    },
   },
   role:{
     type:DataTypes.STRING,
@@ -60,38 +60,11 @@ const User = sequelize.define("users", {
   },
 });
 
-const getAuthToken = async (id) => {
-  const payload = { _id: id };
-  const secret = process.env.JWT_SECRET;
-  const token = jwt.sign(payload, secret);
-  await User.update({ token: token }, { where: { _id: id } });
-  const user = await User.findByPk(id);
-  return user;
-};
-
-const encodePassword = async (password, id) => {
-  const enPassword = await bcrypt.hash(password, 8);
-  await User.update({ password: enPassword }, { where: { _id: id } });
-  const user = await User.findByPk(id);
-  return user;
-};
-
-const findByCredentials = async(email,password)=>{
-    const promise = new Promise(async(res,rej)=>{
-        const user = await User.findOne({where:{email:email}})
-        if(!user){
-            rej("incorrect email or password")
-        }
-        else{
-            const isMatch = await bcrypt.compare(password,user.password)
-            if(!isMatch){
-                rej("incorrect email or password")
-            }
-        }
-        res(user)
-    })
-    return promise
-}
+User.beforeCreate(async (user,options)=>{
+  const enPassword = await bcrypt.hash(user.password,8)
+  user.password = enPassword
+  console.log(user)
+})
 
 User.sync()
   .then(() => {
@@ -101,4 +74,4 @@ User.sync()
     console.log(error);
   });
 
-module.exports = { User, getAuthToken, encodePassword ,findByCredentials};
+module.exports = { User };

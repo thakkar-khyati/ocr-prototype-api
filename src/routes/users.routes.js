@@ -7,8 +7,6 @@ const {
   getUserById,
   updateUser,
   deleteUser,
-  loginUser,
-  logoutUser
 } = require("../controllers/users.controller");
 
 const userRouter = express.Router();
@@ -22,9 +20,5 @@ userRouter.get("/users/:id",getUserById)
 userRouter.patch("/users/:id", updateUser);
 
 userRouter.delete("/users/:id", deleteUser);
-
-//userRouter.post("/users/login", loginUser);
-
-// userRouter.post("/users/logout",logoutUser)
 
 module.exports = userRouter;
