@@ -1,16 +1,16 @@
 const Eureka = require("eureka-js-client").Eureka;
-const dotenv = require('dotenv')
+const dotenv = require("dotenv");
 
-dotenv.config()
+dotenv.config();
 
-const client = new Eureka({
+const client1 = new Eureka({
   // application instance information
   instance: {
     app: "khyati-ocr",
     hostName: "localhost",
-    ipAddr: "127.0.0.1",
+    ipAddr: "192.168.2.30",
     port: {
-      $: process.env.PORT,
+      $: process.env.PORT1 && process.env.PORT2 && process.env.PORT3 && process.env.PORT4,
       "@enabled": "true",
     },
     vipAddress: "khyati.com",
@@ -27,4 +27,5 @@ const client = new Eureka({
   },
 });
 
-module.exports = client;
+
+module.exports = { client1, };

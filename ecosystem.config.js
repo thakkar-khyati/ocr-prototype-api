@@ -1,44 +1,14 @@
+
 module.exports = {
   apps: [
     {
-      name: "user-1",
+      name: "user-app",
       script: "index.js",
       watch: true,
       instances: 1,
       autorestart: true,
       max_memory_restart: "1G",
       exec_mode: "cluster",
-      args: ["--port=3001"],
-    },
-    {
-      name: "user-2",
-      script: "index.js",
-      watch: true,
-      instances: 1,
-      autorestart: true,
-      max_memory_restart: "1G",
-      exec_mode: "cluster",
-      args: ["--port=3002"],
-    },
-    {
-      name: "user-3",
-      script: "index.js",
-      watch: true,
-      instances: 1,
-      autorestart: true,
-      max_memory_restart: "1G",
-      exec_mode: "cluster",
-      args: ["--port=3003"],
-    },
-    {
-      name: "user-4",
-      script: "index.js",
-      watch: true,
-      instances: 1,
-      autorestart: true,
-      max_memory_restart: "1G",
-      exec_mode: "cluster",
-      args: ["--port=3004"],
     },
   ],
 };

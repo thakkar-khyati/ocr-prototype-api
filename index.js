@@ -4,21 +4,25 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const socketio = require("socket.io");
 const http = require("http");
+const cluster = require("node:cluster");
 
-
-const client = require("./src/eureka");
-const userRouter = require("./src/routes/users.routes");
-const javaApiCall = require("./src/controllers/socket.controller");
 const logger = require("./src/logs/infoLogger");
 const errorLogger = require("./src/logs/errorLogger");
+const { javaApiCall } = require("./src/controllers/socket.controller");
+
+const { client1 } = require("./src/eureka");
+const userRouter = require("./src/routes/users.routes");
+const paymentRouter = require("./src/routes/payment.routes");
 
 dotenv.config();
 const app = express();
 
 app.use(bodyParser.json());
-app.use("/", userRouter);
+app.use("/users", userRouter);
+app.use("/payment", paymentRouter);
 const server = http.createServer(app);
-//client.start();
+// client1.start();
+
 
 app.use(
   cors({
@@ -72,18 +76,51 @@ io.on("connection", (socket) => {
       });
     }
   });
-  socket.on('disconnect',()=>{
-    console.log("client disconnected for ",socket.id)
+  socket.on("disconnect", () => {
+    console.log("client disconnected for ", socket.id);
     logger.info({
-      message:`socket disconnected with ${socket.id}`,
-      socketID:socket.id,
-      ip:socket.ip
-    })
-  })
+      message: `socket disconnected with ${socket.id}`,
+      socketID: socket.id,
+      ip: socket.ip,
+    });
+  });
 });
 
-port = process.env.PORT
+port1 = process.env.PORT1;
+port2 = process.env.PORT2;
+port3 = process.env.PORT3;
+port4 = process.env.PORT4;
 
-server.listen(port,()=>{
-  console.log(`server and web-socket running on ${port}, with pid of ${process.pid}`)
-})
+numCPUs = require("node:os").cpus().length;
+
+if (cluster.isPrimary) {
+  for (let i = 0; i < numCPUs; i++) {
+    cluster.fork();
+  }
+} else {
+  server.listen(port1, () => {
+    console.log(
+      `server and web-socket running on ${port1}, with pid of ${process.pid}`
+    );
+  });
+
+  server.listen(port2, () => {
+    console.log(
+      `server and web-socket running on ${port2}, with pid of ${process.pid}`
+    );
+  });
+
+  server.listen(port3, () => {
+    console.log(
+      `server and web-socket running on ${port3}, with pid of ${process.pid}`
+    );
+  });
+
+  server.listen(port4, () => {
+    console.log(
+      `server and web-socket running on ${port4}, with pid of ${process.pid}`
+    );
+  });
+}
+
+module.exports = io;

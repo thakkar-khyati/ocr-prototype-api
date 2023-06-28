@@ -7,10 +7,10 @@ dotenv.config()
 
 const auth = async(req,res,next)=>{
     try {
-        const token = req.header("Authorization");
+        const token = req.header("Authorization").split(" ")[1];
         console.log(token)
-        console.log(typeof(token))
-        token = token.split(" ")[1];
+        // console.log(typeof(token))
+        // token = token.split(" ")[1];
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const user = await User.findOne({where:{_id:decoded._id}})
         if(!user){

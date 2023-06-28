@@ -1,5 +1,4 @@
-const { DataTypes, where } = require("sequelize");
-const jwt = require("jsonwebtoken");
+const { DataTypes } = require("sequelize");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 
@@ -13,19 +12,14 @@ const User = sequelize.define("users", {
     allowNull: false,
     defaultValue: DataTypes.UUIDV4,
   },
-  user_id: {
-    type: DataTypes.INTEGER,
-    allowNull: true,
-    autoIncrement: true,
-  },
-  firstname: {
+  firstName: {
     type: DataTypes.STRING,
     allowNull:false,
     validate:{
       notEmpty:true
     }
   },
-  lastname: {
+  lastName: {
     type: DataTypes.STRING,
     allowNull:false,
     validate:{
@@ -47,6 +41,32 @@ const User = sequelize.define("users", {
     validate:{
       notEmpty:true,
     },
+  },
+  phoneNo:{
+    type: DataTypes.STRING,
+    allowNull:false,
+    validate:{
+      isIndianMobileNumber: function(value){
+        const mobileNumberRegex = /^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[6789]\d{9}$/;
+        if(!mobileNumberRegex.test(value)){
+          throw new Error("Invalid Indian Number")
+        }
+      }
+    }
+  },
+  organizationName:{
+    type:DataTypes.STRING,
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
+  },
+  country:{
+    type:DataTypes.STRING,
+    allowNull:false,
+    validate:{
+      notEmpty:true
+    }
   },
   role:{
     type:DataTypes.STRING,
