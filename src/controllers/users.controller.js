@@ -1,3 +1,5 @@
+const jwt = require("jsonwebtoken")
+const axios = require("axios")
 const { User } = require("../models/users.model");
 
 const logger = require("../logs/infoLogger");
@@ -9,13 +11,13 @@ const utill = require("../utill");
 const createUser = async (req, res) => {
   try {
     const {
-      firstName,
-      lastName,
+      first_name,
+      last_name,
       email,
       role,
       password,
-      organizationName,
-      phoneNo,
+      organization_name,
+      phone_no,
       country,
     } = req.body;
     debugLogger.debug({
@@ -23,24 +25,24 @@ const createUser = async (req, res) => {
       method: req.method,
       ip: req.ip,
       req_body: {
-        firstName,
-        lastName,
+        first_name,
+        last_name,
         email,
         role,
-        organizationName,
-        phoneNo,
+        organization_name,
+        phone_no,
         country,
       },
       additional_info: "req body has been retrived.",
     });
     const user = await User.create({
-      firstName,
-      lastName,
+      first_name,
+      last_name,
       email,
       role,
       password,
-      organizationName,
-      phoneNo,
+      organization_name,
+      phone_no,
       country,
     });
     debugLogger.debug({
@@ -310,10 +312,216 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const forgetPassword = async(req,res)=>{
+  try {
+    const user = await User.findOne({where:{email:req.body.email}})
+    
+    if(!user){
+      debugLogger.debug({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.notFound,
+        email:req.body.email,
+        additional_info: "user not found!",
+      });
+      return res
+        .status(utill.status.notFound)
+        .send({ toastMsg: "user not found!" });
+    }
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      user: user,
+      additional_info: "user found!",
+    });
+    const JWT_SECRET = process.env.JWT_SECRET_FORGET_PASSWORD
+    const secret = JWT_SECRET + user.password
+
+    const payload = {
+      email: user.email,
+      id: user._id
+    }
+
+    const token = jwt.sign(payload, secret,{expiresIn:'10m'})
+
+    const link = `http://localhost:3001/users/reset-password/${user._id}/${token}`
+
+    debugLogger.debug({
+      url:req.url,
+      method:req.method,
+      ip:req.ip,
+      user:user,
+      link:link,
+      additional_info:"link for reset password created."
+    })
+
+    const data = {
+      email:user.email,
+      name:`${user.first_name} ${user.last_name}`,
+      link:link
+    }
+
+    await axios.post("http://192.168.2.41:8000/resetpassword",data).then((result) => {
+      res.status(utill.status.success).send({toastMsg:"reset password link send in an email."})
+      debugLogger.debug({
+        url:req.url,
+        method:req.method,
+        ip:req.ip,
+        user:user,
+        link:link,
+        additional_info:"link for reset password sent as an email."
+      })
+    }).catch((error) => {
+      res.status(utill.status.badRequest).send(error)
+      errorLogger.error({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.badRequest,
+        email:req.body.email,
+        error: error,
+      });
+    });
+  } catch (error) {
+    console.log(error)
+    res.status(utill.status.serverError).send(error)
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.serverError,
+      email:req.body.email,
+      error: error,
+    });
+  }
+
+}
+
+const userForResetPassword = async(req,res)=>{
+  try {
+    const user = await User.findByPk(req.params.id)
+    if(!user){
+      debugLogger.debug({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.notFound,
+        email:req.body.email,
+        additional_info: "user not found!",
+      });
+      return res
+        .status(utill.status.notFound)
+        .send({ toastMsg: "user not found!" });
+    }
+
+    const JWT_SECRET = process.env.JWT_SECRET_FORGET_PASSWORD
+    const secret = JWT_SECRET + user.password
+    
+    if(isTokenExpired(req.params.token, secret) === true){
+      debugLogger.debug({
+        url:req.url,
+        method:req.method,
+        ip:req.ip,
+        statuscode:utill.status.pageExpired,
+        additional_info:"token expired"
+      })
+      return res.status(utill.status.pageExpired).send({toastMsg:"token expired"})
+    }
+    const payload = jwt.verify(req.params.token, secret)
+
+    debugLogger.debug({
+      url:req.url,
+      method:req.method,
+      ip:req.ip,
+      statuscode:utill.status.success,
+      payload:payload,
+      additional_info:"token is verified and sent as a response."
+    })
+
+    res.send(payload)
+  } catch (error) {
+    console.log(error)
+    res.status(utill.status.serverError).send(error)
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.serverError,
+      email:req.body.email,
+      error: error,
+    });
+  }
+}
+
+const resetPassword = async(req,res)=>{
+  try {
+    let user = await User.findByPk(req.params.id)
+    if(!user){
+      debugLogger.debug({
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.notFound,
+        email:req.body.email,
+        additional_info: "user not found!",
+      });
+      return res
+        .status(utill.status.notFound)
+        .send({ toastMsg: "user not found!" });
+    }
+    user.password = req.body.password
+    await user.save()
+    debugLogger.debug({
+      url:req.url,
+      method:req.method,
+      ip:req.ip,
+      statuscode:utill.status.success,
+      user:user,
+      additional_info:"reset password successfull."
+    })
+    res.status(utill.status.success).send({user:user,toastMsg:"reset password successfull."})
+    logger.info({
+      url:req.url,
+      method:req.method,
+      ip:req.ip,
+      statuscode:utill.status.success,
+      user:user,
+      additional_info:"reset password successfull and user sent as reponse."
+    })
+  } catch (error) {
+    console.log(error)
+    res.status(utill.status.serverError).send(error)
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.serverError,
+      email:req.body.email,
+      error: error,
+    });
+  }
+}
+
+const isTokenExpired = (token,secret)=>{
+  try {
+    const payload = jwt.verify(token, secret)
+    const expirationTime = payload.exp
+    const currentTime = Math.floor(Date.now()/1000)
+    return expirationTime < currentTime
+  } catch (error) {
+    return true
+  }
+}
+
 module.exports = {
   createUser,
   getAllUser,
   getUserById,
   updateUser,
   deleteUser,
+  forgetPassword,
+  userForResetPassword,
+  resetPassword
 };

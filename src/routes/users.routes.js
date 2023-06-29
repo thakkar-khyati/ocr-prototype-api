@@ -7,6 +7,9 @@ const {
   getUserById,
   updateUser,
   deleteUser,
+  forgetPassword,
+  userForResetPassword,
+  resetPassword
 } = require("../controllers/users.controller");
 
 const userRouter = express.Router();
@@ -20,5 +23,11 @@ userRouter.get("/:id",getUserById)
 userRouter.patch("/:id", updateUser);
 
 userRouter.delete("/:id", deleteUser);
+
+userRouter.post("/forget-password",forgetPassword)
+
+userRouter.get("/reset-password/:id/:token",userForResetPassword)
+
+userRouter.patch("/reset-password/:id",resetPassword)
 
 module.exports = userRouter;

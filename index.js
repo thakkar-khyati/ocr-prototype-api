@@ -4,7 +4,6 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const socketio = require("socket.io");
 const http = require("http");
-const cluster = require("node:cluster");
 
 const logger = require("./src/logs/infoLogger");
 const errorLogger = require("./src/logs/errorLogger");
@@ -13,6 +12,8 @@ const { javaApiCall } = require("./src/controllers/socket.controller");
 const { client1 } = require("./src/eureka");
 const userRouter = require("./src/routes/users.routes");
 const paymentRouter = require("./src/routes/payment.routes");
+
+const Roles = require("./src/models/user.roles.model")
 
 dotenv.config();
 const app = express();
@@ -91,36 +92,22 @@ port2 = process.env.PORT2;
 port3 = process.env.PORT3;
 port4 = process.env.PORT4;
 
-numCPUs = require("node:os").cpus().length;
 
-if (cluster.isPrimary) {
-  for (let i = 0; i < numCPUs; i++) {
-    cluster.fork();
-  }
-} else {
-  server.listen(port1, () => {
-    console.log(
-      `server and web-socket running on ${port1}, with pid of ${process.pid}`
-    );
-  });
+server.listen(port1,()=>{
+  console.log(`server and web socket running on ${port1}`)
+})
 
-  server.listen(port2, () => {
-    console.log(
-      `server and web-socket running on ${port2}, with pid of ${process.pid}`
-    );
-  });
+server.listen(port2,()=>{
+  console.log(`server and web socket running on ${port2}`)
+})
 
-  server.listen(port3, () => {
-    console.log(
-      `server and web-socket running on ${port3}, with pid of ${process.pid}`
-    );
-  });
+server.listen(port3,()=>{
+  console.log(`server and web socket running on ${port3}`)
+})
 
-  server.listen(port4, () => {
-    console.log(
-      `server and web-socket running on ${port4}, with pid of ${process.pid}`
-    );
-  });
-}
+server.listen(port4,()=>{
+  console.log(`server and web socket running on ${port4}`)
+})
+
 
 module.exports = io;

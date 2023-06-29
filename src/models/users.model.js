@@ -12,14 +12,14 @@ const User = sequelize.define("users", {
     allowNull: false,
     defaultValue: DataTypes.UUIDV4,
   },
-  firstName: {
+  first_name: {
     type: DataTypes.STRING,
     allowNull:false,
     validate:{
       notEmpty:true
     }
   },
-  lastName: {
+  last_name: {
     type: DataTypes.STRING,
     allowNull:false,
     validate:{
@@ -42,9 +42,10 @@ const User = sequelize.define("users", {
       notEmpty:true,
     },
   },
-  phoneNo:{
+  phone_no:{
     type: DataTypes.STRING,
     allowNull:false,
+    unique:true,
     validate:{
       isIndianMobileNumber: function(value){
         const mobileNumberRegex = /^(?:(?:\+|0{0,2})91(\s*[\-]\s*)?|[0]?)?[6789]\d{9}$/;
@@ -54,7 +55,7 @@ const User = sequelize.define("users", {
       }
     }
   },
-  organizationName:{
+  organization_name:{
     type:DataTypes.STRING,
     allowNull:false,
     validate:{
@@ -75,12 +76,19 @@ const User = sequelize.define("users", {
       isIn:[['admin','user','Admin','User','ADMIN','USER']]
     }
   },
+  profile_pic:{
+    type:DataTypes.STRING,
+  },
+  is_active:{
+    type:DataTypes.BOOLEAN,
+    defaultValue:false
+  },
   token: {
     type: DataTypes.STRING,
   },
 });
 
-User.beforeCreate(async (user,options)=>{
+User.beforeSave(async (user,options)=>{
   const enPassword = await bcrypt.hash(user.password,8)
   user.password = enPassword
   console.log(user)
