@@ -1,16 +1,17 @@
-const { DataTypes } = require("sequelize");
+const { Sequelize, DataTypes } = require("sequelize");
 const dotenv = require("dotenv");
 const bcrypt = require("bcrypt");
 
 dotenv.config();
 const sequelize = require("../db");
+const Roles = require("./roles.model")
 
 const User = sequelize.define("users", {
   _id: {
     type: DataTypes.UUID,
     primaryKey: true,
     allowNull: false,
-    defaultValue: DataTypes.UUIDV4,
+    defaultValue: Sequelize.UUIDV4,
   },
   first_name: {
     type: DataTypes.STRING,
@@ -69,22 +70,19 @@ const User = sequelize.define("users", {
       notEmpty:true
     }
   },
-  role:{
-    type:DataTypes.STRING,
-    defaultValue:'user',
-    validate:{
-      isIn:[['admin','user','Admin','User','ADMIN','USER']]
-    }
-  },
-  profile_pic:{
+  // role:{
+  //   type:DataTypes.STRING,
+  //   defaultValue:'user',
+  //   validate:{
+  //     isIn:[['admin','user','Admin','User','ADMIN','USER']]
+  //   }
+  // },
+  avatar:{
     type:DataTypes.STRING,
   },
   is_active:{
     type:DataTypes.BOOLEAN,
     defaultValue:false
-  },
-  token: {
-    type: DataTypes.STRING,
   },
 });
 
@@ -94,7 +92,10 @@ User.beforeSave(async (user,options)=>{
   console.log(user)
 })
 
-User.sync()
+User.belongsTo(Roles,{foreignKey:"role_id"})
+Roles.hasMany(User,{foreignKey:"role_id"})
+
+User.sync({alter:true})
   .then(() => {
     console.log("user model synced");
   })

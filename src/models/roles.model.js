@@ -4,18 +4,17 @@ const sequelize = require("../db");
 
 const Roles = sequelize.define("user_roles", {
   _id: {
-    type: DataTypes.UUID,
+    type: DataTypes.INTEGER,
     primaryKey: true,
     allowNull: false,
-    defaultValue: DataTypes.UUIDV4,
+    autoIncrement:true
   },
   role: {
     type: DataTypes.STRING,
   },
 });
 
-
-Roles.sync().then(()=>{
+Roles.sync({alter:true}).then(()=>{
     console.log("roles model synced")
 }).catch((error)=>{
     console.log(error)

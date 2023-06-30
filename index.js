@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const cors = require("cors");
 const socketio = require("socket.io");
 const http = require("http");
+const path = require("path")
 
 const logger = require("./src/logs/infoLogger");
 const errorLogger = require("./src/logs/errorLogger");
@@ -11,16 +12,14 @@ const { javaApiCall } = require("./src/controllers/socket.controller");
 
 const { client1 } = require("./src/eureka");
 const userRouter = require("./src/routes/users.routes");
-const paymentRouter = require("./src/routes/payment.routes");
 
-const Roles = require("./src/models/user.roles.model")
 
 dotenv.config();
 const app = express();
 
 app.use(bodyParser.json());
 app.use("/users", userRouter);
-app.use("/payment", paymentRouter);
+app.use("/users/images",express.static(path.join('images')))
 const server = http.createServer(app);
 // client1.start();
 
