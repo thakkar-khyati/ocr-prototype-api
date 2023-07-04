@@ -10,7 +10,6 @@ const errorLogger = require("../logs/errorLogger");
 const debugLogger = require("../logs/debugLogger");
 
 const utill = require("../utill");
-const { where, UUID } = require("sequelize");
 
 const createUser = async (req, res) => {
   try {
@@ -40,7 +39,7 @@ const createUser = async (req, res) => {
       additional_info: "req body has been retrived.",
     });
     if (role === undefined) {
-      role = "user";
+      role = "ROLE_USER";
     }
     const UserRole = await Roles.findOne({ where: { role: role } });
     const user = await User.create({
@@ -131,7 +130,6 @@ const getAllUser = async (req, res) => {
       });
     }
   } catch (error) {
-    res.status(utill.status.serverError).send(error);
     errorLogger.error({
       url: req.url,
       method: req.method,
@@ -140,6 +138,7 @@ const getAllUser = async (req, res) => {
       error: error,
     });
     console.log(error);
+    res.status(utill.status.serverError).send(error);
   }
 };
 
