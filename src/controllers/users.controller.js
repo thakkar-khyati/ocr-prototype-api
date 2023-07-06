@@ -59,6 +59,8 @@ const createUser = async (req, res) => {
       req_body: user,
       additional_info: "user created",
     });
+    // res.setHeader('Access-Control-Allow-Origin', 'http://192.168.2.91:3000');
+    // res.setHeader('content-type','application/json')
     res
       .status(utill.status.created)
       .send({ user: user, toastMsg: "user created successfully." });
@@ -78,6 +80,57 @@ const createUser = async (req, res) => {
       user: user,
       additional_info: "User created successfully and send as repsponse.",
     });
+    const secret = process.env.JWT_SECRET_REGISTER_USER;
+
+    const payload = {
+      id: user._id,
+    };
+
+    const token = jwt.sign(payload, secret);
+    const link = `http://localhost:3000/users/validate/${token}`;
+
+    const data = {
+      name: `${user.first_name} ${user.last_name}`,
+      email: user.email,
+      link: link,
+    };
+
+    // await axios.post('http://192.168.2.31:3000/mail/welcome',data).then((response)=>{
+    //   console.log(response)
+    //   console.log("link sent")
+    // }).catch((error)=>{
+    //   console.log(error)
+    // })
+  } catch (error) {
+    errorLogger.error({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.badRequest,
+      body: req.body,
+      error: error.errors,
+    });
+    console.log(error);
+    res.status(utill.status.badRequest).send(error);
+  }
+};
+
+const varifyUser = async (req, res) => {
+  try {
+    const secret = process.env.JWT_SECRET_REGISTER_USER;
+    const payload = jwt.verify(req.params.token, secret);
+    let user = await User.findOne({ where: { _id: payload.id } });
+    debugLogger.debug({
+      url: req.url,
+      method: req.method,
+      ip: req.ip,
+      statuscode: utill.status.success,
+    });
+    user = await User.update(
+      { is_verified: true },
+      { where: { _id: payload.id } }
+    );
+    res.send(user);
   } catch (error) {
     errorLogger.error({
       url: req.url,
@@ -305,13 +358,13 @@ const updateAvatar = async (req, res) => {
         console.log(error);
       });
       debugLogger.debug({
-        url:req.url,
-        method:req.method,
-        ip:req.ip,
-        statuscode:utill.status.success,
-        user:user,
-        additional_info:"avatar for user is deleted from the images folder."
-      })
+        url: req.url,
+        method: req.method,
+        ip: req.ip,
+        statuscode: utill.status.success,
+        user: user,
+        additional_info: "avatar for user is deleted from the images folder.",
+      });
     }
     const avatar = process.env.IMG_URL + req.file.filename;
     const updatedUser = await User.update({ avatar }, { where: { _id: id } });
@@ -321,7 +374,8 @@ const updateAvatar = async (req, res) => {
       ip: req.ip,
       statuscode: utill.status.success,
       user: updateUser,
-      additional_info: "updated user with updated avatar path sent as response.",
+      additional_info:
+        "updated user with updated avatar path sent as response.",
     });
     res.status(utill.status.success).send(updatedUser);
     logger.info({
@@ -386,12 +440,14 @@ const deleteUser = async (req, res) => {
       user: user,
       additional_info: "user deleted.",
     });
-    const filename = user.avatar.replace(process.env.IMG_URL, "");
-    const directoryPath = process.env.IMG_PATH;
-    const path = directoryPath + filename;
-    fs.unlink(path, (error) => {
-      console.log(error);
-    });
+    if (user.avatar) {
+      const filename = user.avatar.replace(process.env.IMG_URL, "");
+      const directoryPath = process.env.IMG_PATH;
+      const path = directoryPath + filename;
+      fs.unlink(path, (error) => {
+        console.log(error);
+      });
+    }
     res.status(utill.status.success).send({ toastMsg: "user deleted." });
     logger.info({
       url: req.url,
@@ -628,6 +684,7 @@ const isTokenExpired = (token, secret) => {
 
 module.exports = {
   createUser,
+  varifyUser,
   getAllUser,
   getUserById,
   updateUser,

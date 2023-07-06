@@ -4,6 +4,7 @@ const auth = require("../middleware/auth")
 const storage = require("../middleware/userAvatar.storage")
 const {
   createUser,
+  varifyUser,
   getAllUser,
   getUserById,
   updateUser,
@@ -16,17 +17,19 @@ const {
 
 const userRouter = express.Router();
 
-userRouter.post("/", createUser);
+userRouter.post("/signup", createUser);
+
+userRouter.get("/validate/:token",varifyUser)
 
 userRouter.get("/",getAllUser);
 
-userRouter.get("/:id",getUserById)
+ userRouter.get("/:id",getUserById)
 
-userRouter.patch("/:id", updateUser);
+userRouter.patch("/update/:id", updateUser);
 
 userRouter.patch("/avatar/:id",storage,updateAvatar)
 
-userRouter.delete("/:id", deleteUser);
+userRouter.delete("/delete/:id", deleteUser);
 
 userRouter.post("/forget-password",forgetPassword)
 

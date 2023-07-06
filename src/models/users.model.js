@@ -86,6 +86,10 @@ const User = sequelize.define("users", {
     type: DataTypes.BOOLEAN,
     defaultValue: false,
   },
+  is_verified: {
+    type: DataTypes.BOOLEAN,
+    defaultValue: false,
+  },
 });
 
 User.beforeSave(async (user, options) => {
